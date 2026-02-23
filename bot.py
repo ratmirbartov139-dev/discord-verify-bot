@@ -19,8 +19,8 @@ intents.message_content = True
 
 bot = commands.Bot(command_prefix='!', intents=intents)
 
-# ID роли для верифицированных (настрой в config.json)
-VERIFIED_ROLE_ID = config.get('verified_role_id', 0)
+# ID роли для верифицированных (из переменных окружения или config.json)
+VERIFIED_ROLE_ID = int(os.getenv('VERIFIED_ROLE_ID', config.get('verified_role_id', 0)))
 
 class VerifyButton(discord.ui.View):
     def __init__(self):
@@ -94,9 +94,10 @@ async def help_verify(ctx):
 
 # Запуск бота
 if __name__ == '__main__':
-    token = config.get('bot_token', '')
+    # Читаем токен из переменных окружения или config.json
+    token = os.getenv('BOT_TOKEN', config.get('bot_token', ''))
     if not token:
         print('❌ Токен бота не найден!')
-        print('📝 Создай файл config.json и добавь туда токен бота')
+        print('📝 Добавь BOT_TOKEN в переменные окружения или config.json')
     else:
         bot.run(token)
