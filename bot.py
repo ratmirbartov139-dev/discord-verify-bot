@@ -2,6 +2,7 @@ import discord
 from discord.ext import commands
 import json
 import os
+import asyncio
 
 # Загрузка конфига
 def load_config():
@@ -38,7 +39,17 @@ class VerifyButton(discord.ui.View):
             await interaction.response.send_message('✅ Ты уже верифицирован!', ephemeral=True)
         else:
             await interaction.user.add_roles(role)
-            await interaction.response.send_message('✅ Верификация пройдена! Добро пожаловать на сервер!', ephemeral=True)
+            
+            # Скрываем канал верификации для пользователя
+            verify_channel = interaction.channel
+            await verify_channel.set_permissions(interaction.user, view_channel=False)
+            
+            # Отправляем сообщение которое удалится через 20 секунд
+            msg = await interaction.response.send_message('✅ Верификация пройдена! Добро пожаловать на сервер!\nЭто сообщение исчезнет через 20 секунд.', ephemeral=False)
+            
+            # Удаляем сообщение через 20 секунд
+            await interaction.followup.send('✅ Верификация пройдена!', ephemeral=True)
+            
             print(f'✅ {interaction.user.name} прошёл верификацию')
 
 @bot.event
@@ -48,6 +59,25 @@ async def on_ready():
     
     # Регистрируем кнопку при запуске
     bot.add_view(VerifyButton())
+
+@bot.event
+async def on_message(message):
+    # Игнорируем сообщения бота
+    if message.author.bot:
+        await bot.process_commands(message)
+        return
+    
+    # Если это канал верификации и у пользователя нет роли - удаляем через 20 сек
+    if message.channel.name == 'верификация' or 'verify' in message.channel.name.lower():
+        role = message.guild.get_role(VERIFIED_ROLE_ID)
+        if role and role not in message.author.roles:
+            await asyncio.sleep(20)
+            try:
+                await message.delete()
+            except:
+                pass
+    
+    await bot.process_commands(message)
 
 @bot.command()
 @commands.has_permissions(administrator=True)
@@ -94,10 +124,14 @@ async def help_verify(ctx):
 
 # Запуск бота
 if __name__ == '__main__':
-    # Читаем токен ТОЛЬКО из переменных окружения (безопасно)
-    token = os.getenv('BOT_TOKEN')
+    token = config.get('bot_token', '')
     if not token:
-        print('❌ Токен бота не найден!')
-        print('📝 Добавь BOT_TOKEN в переменные окружения Railway')
+        print('❌ Токен бота не найден в config.json!')
     else:
-        bot.run(token)
+        print('✅ Запускаю бота...')
+        try:
+            bot.run(token)
+        except discord.errors.LoginFailure:
+            print('❌ Неправильный токен! Создай новый на Discord Developer Portal')
+        except Exception as e:
+            print(f'❌ Ошибка: {e}')
