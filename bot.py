@@ -94,10 +94,10 @@ async def help_verify(ctx):
 
 # Запуск бота
 if __name__ == '__main__':
-    # Читаем токен из переменных окружения или config.json
-    token = os.getenv('BOT_TOKEN', config.get('bot_token', ''))
+    # Читаем токен ТОЛЬКО из переменных окружения (безопасно)
+    token = os.getenv('BOT_TOKEN')
     if not token:
         print('❌ Токен бота не найден!')
-        print('📝 Добавь BOT_TOKEN в переменные окружения или config.json')
+        print('📝 Добавь BOT_TOKEN в переменные окружения Railway')
     else:
         bot.run(token)
